@@ -1,224 +1,11 @@
 pragma solidity ^0.4.11;
 
-
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Ownable {
-  address public owner;
-
-
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  function Ownable() {
-    owner = msg.sender;
-  }
-
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) onlyOwner {
-    if (newOwner != address(0)) {
-      owner = newOwner;
-    }
-  }
-
-}
-
-
-
-/// @title Interface for contracts conforming to ERC-721: Non-Fungible Tokens
-/// @author Dieter Shirley <dete@axiomzen.co> (https://github.com/dete)
-contract ERC721 {
-    // Required methods
-    function totalSupply() public view returns (uint256 total);
-    function balanceOf(address _owner) public view returns (uint256 balance);
-    function ownerOf(uint256 _tokenId) external view returns (address owner);
-    function approve(address _to, uint256 _tokenId) external;
-    function transfer(address _to, uint256 _tokenId) external;
-    function transferFrom(address _from, address _to, uint256 _tokenId) external;
-
-    // Events
-    event Transfer(address from, address to, uint256 tokenId);
-    event Approval(address owner, address approved, uint256 tokenId);
-
-    // Optional
-    // function name() public view returns (string name);
-    // function symbol() public view returns (string symbol);
-    // function tokensOfOwner(address _owner) external view returns (uint256[] tokenIds);
-    // function tokenMetadata(uint256 _tokenId, string _preferredTransport) public view returns (string infoUrl);
-
-    // ERC-165 Compatibility (https://github.com/ethereum/EIPs/issues/165)
-    function supportsInterface(bytes4 _interfaceID) external view returns (bool);
-}
-
-
-// // Auction wrapper functions
-
-
-// Auction wrapper functions
-
-
-
-
-
-
-
-/// @title SEKRETOOOO
-contract GeneScienceInterface {
-    /// @dev simply a boolean to indicate this is the contract we expect to be
-    function isGeneScience() public pure returns (bool);
-
-
-    /// @dev given genes of kitten 1 & 2, return a genetic combination - may have a random factor
-    /// @param genes1 genes of mom
-    /// @param genes2 genes of sire
-    /// @return the genes that are supposed to be passed down the child
-    function mixGenes(uint256 genes1, uint256 genes2, uint256 targetBlock) public returns (uint256);
-}
-
-
-
-
-
-
-
-/// @title A facet of KittyCore that manages special access privileges.
-/// @author Axiom Zen (https://www.axiomzen.co)
-/// @dev See the KittyCore contract documentation to understand how the various contract facets are arranged.
-contract KittyAccessControl {
-    // This facet controls access control for CryptoKitties. There are four roles managed here:
-    //
-    //     - The CEO: The CEO can reassign other roles and change the addresses of our dependent smart
-    //         contracts. It is also the only role that can unpause the smart contract. It is initially
-    //         set to the address that created the smart contract in the KittyCore constructor.
-    //
-    //     - The CFO: The CFO can withdraw funds from KittyCore and its auction contracts.
-    //
-    //     - The COO: The COO can release gen0 kitties to auction, and mint promo cats.
-    //
-    // It should be noted that these roles are distinct without overlap in their access abilities, the
-    // abilities listed for each role above are exhaustive. In particular, while the CEO can assign any
-    // address to any role, the CEO address itself doesn't have the ability to act in those roles. This
-    // restriction is intentional so that we aren't tempted to use the CEO address frequently out of
-    // convenience. The less we use an address, the less likely it is that we somehow compromise the
-    // account.
-
-    /// @dev Emited when contract is upgraded - See README.md for updgrade plan
-    event ContractUpgrade(address newContract);
-
-    // The addresses of the accounts (or contracts) that can execute actions within each roles.
-    address public ceoAddress;
-    address public cfoAddress;
-    address public cooAddress;
-
-    // @dev Keeps track whether the contract is paused. When that is true, most actions are blocked
-    bool public paused = false;
-
-    /// @dev Access modifier for CEO-only functionality
-    modifier onlyCEO() {
-        require(msg.sender == ceoAddress);
-        _;
-    }
-
-    /// @dev Access modifier for CFO-only functionality
-    modifier onlyCFO() {
-        require(msg.sender == cfoAddress);
-        _;
-    }
-
-    /// @dev Access modifier for COO-only functionality
-    modifier onlyCOO() {
-        require(msg.sender == cooAddress);
-        _;
-    }
-
-    modifier onlyCLevel() {
-        require(
-            msg.sender == cooAddress ||
-            msg.sender == ceoAddress ||
-            msg.sender == cfoAddress
-        );
-        _;
-    }
-
-    /// @dev Assigns a new address to act as the CEO. Only available to the current CEO.
-    /// @param _newCEO The address of the new CEO
-    function setCEO(address _newCEO) external onlyCEO {
-        require(_newCEO != address(0));
-
-        ceoAddress = _newCEO;
-    }
-
-    /// @dev Assigns a new address to act as the CFO. Only available to the current CEO.
-    /// @param _newCFO The address of the new CFO
-    function setCFO(address _newCFO) external onlyCEO {
-        require(_newCFO != address(0));
-
-        cfoAddress = _newCFO;
-    }
-
-    /// @dev Assigns a new address to act as the COO. Only available to the current CEO.
-    /// @param _newCOO The address of the new COO
-    function setCOO(address _newCOO) external onlyCEO {
-        require(_newCOO != address(0));
-
-        cooAddress = _newCOO;
-    }
-
-    /*** Pausable functionality adapted from OpenZeppelin ***/
-
-    /// @dev Modifier to allow actions only when the contract IS NOT paused
-    modifier whenNotPaused() {
-        require(!paused);
-        _;
-    }
-
-    /// @dev Modifier to allow actions only when the contract IS paused
-    modifier whenPaused {
-        require(paused);
-        _;
-    }
-
-    /// @dev Called by any "C-level" role to pause the contract. Used only when
-    ///  a bug or exploit is detected and we need to limit damage.
-    function pause() external onlyCLevel whenNotPaused {
-        paused = true;
-    }
-
-    /// @dev Unpauses the smart contract. Can only be called by the CEO, since
-    ///  one reason we may pause the contract is when CFO or COO accounts are
-    ///  compromised.
-    /// @notice This is public rather than external so it can be called by
-    ///  derived contracts.
-    function unpause() public onlyCEO whenPaused {
-        // can't unpause if contract was upgraded
-        paused = false;
-    }
-}
-
-
-
+import "./CKOrig.sol";
 
 /// @title Base contract for CryptoKitties. Holds all common structs, events and base variables.
 /// @author Axiom Zen (https://www.axiomzen.co)
 /// @dev See the KittyCore contract documentation to understand how the various contract facets are arranged.
-contract KittyBase is KittyAccessControl {
+contract KittyBaseMod is KittyAccessControl {
     /*** EVENTS ***/
 
     /// @dev The Birth event is fired whenever a new kitten comes into existence. This obviously
@@ -338,12 +125,12 @@ contract KittyBase is KittyAccessControl {
     /// @dev The address of the ClockAuction contract that handles sales of Kitties. This
     ///  same contract handles both peer-to-peer sales as well as the gen0 sales which are
     ///  initiated every 15 minutes.
-    SaleClockAuction public saleAuction;
+    SaleClockAuctionMod public saleAuction;
 
     /// @dev The address of a custom ClockAuction subclassed contract that handles siring
     ///  auctions. Needs to be separate from saleAuction because the actions taken on success
     ///  after a sales and siring auction are quite different.
-    SiringClockAuction public siringAuction;
+    SiringClockAuctionMod public siringAuction;
 
     /// @dev Assigns ownership of a specific Kitty to an address.
     function _transfer(address _from, address _to, uint256 _tokenId) internal {
@@ -435,38 +222,11 @@ contract KittyBase is KittyAccessControl {
     }
 }
 
-
-
-
-
-/// @title The external contract that is responsible for generating metadata for the kitties,
-///  it has one function that will return the data as bytes.
-contract ERC721Metadata {
-    /// @dev Given a token Id, returns a byte array that is supposed to be converted into string.
-    function getMetadata(uint256 _tokenId, string) public view returns (bytes32[4] buffer, uint256 count) {
-        if (_tokenId == 1) {
-            buffer[0] = "Hello World! :D";
-            count = 15;
-        } else if (_tokenId == 2) {
-            buffer[0] = "I would definitely choose a medi";
-            buffer[1] = "um length string.";
-            count = 49;
-        } else if (_tokenId == 3) {
-            buffer[0] = "Lorem ipsum dolor sit amet, mi e";
-            buffer[1] = "st accumsan dapibus augue lorem,";
-            buffer[2] = " tristique vestibulum id, libero";
-            buffer[3] = " suscipit varius sapien aliquam.";
-            count = 128;
-        }
-    }
-}
-
-
 /// @title The facet of the CryptoKitties core contract that manages ownership, ERC-721 (draft) compliant.
 /// @author Axiom Zen (https://www.axiomzen.co)
 /// @dev Ref: https://github.com/ethereum/EIPs/issues/721
 ///  See the KittyCore contract documentation to understand how the various contract facets are arranged.
-contract KittyOwnership is KittyBase, ERC721 {
+contract KittyOwnershipMod is KittyBaseMod, ERC721 {
 
     /// @notice Name and symbol of the non fungible token, as defined in ERC721.
     string public constant name = "CryptoKitties";
@@ -733,7 +493,7 @@ contract KittyOwnership is KittyBase, ERC721 {
 /// @title A facet of KittyCore that manages Kitty siring, gestation, and birth.
 /// @author Axiom Zen (https://www.axiomzen.co)
 /// @dev See the KittyCore contract documentation to understand how the various contract facets are arranged.
-contract KittyBreeding is KittyOwnership {
+contract KittyBreedingMod is KittyOwnershipMod {
 
     /// @dev The Pregnant event is fired when two cats successfully breed and the pregnancy
     ///  timer begins for the matron.
@@ -1064,19 +824,10 @@ contract KittyBreeding is KittyOwnership {
     }
 }
 
-
-
-
-
-
-
-
-
-
 /// @title Auction Core
 /// @dev Contains models, variables, and internal methods for the auction.
 /// @notice We omit a fallback function to prevent accidental sends to this contract.
-contract ClockAuctionBase {
+contract ClockAuctionBaseMod {
 
     // Represents an auction on an NFT
     struct Auction {
@@ -1313,62 +1064,9 @@ contract ClockAuctionBase {
 
 }
 
-
-
-
-
-
-
-/**
- * @title Pausable
- * @dev Base contract which allows children to implement an emergency stop mechanism.
- */
-contract Pausable is Ownable {
-  event Pause();
-  event Unpause();
-
-  bool public paused = false;
-
-
-  /**
-   * @dev modifier to allow actions only when the contract IS paused
-   */
-  modifier whenNotPaused() {
-    require(!paused);
-    _;
-  }
-
-  /**
-   * @dev modifier to allow actions only when the contract IS NOT paused
-   */
-  modifier whenPaused {
-    require(paused);
-    _;
-  }
-
-  /**
-   * @dev called by the owner to pause, triggers stopped state
-   */
-  function pause() onlyOwner whenNotPaused returns (bool) {
-    paused = true;
-    Pause();
-    return true;
-  }
-
-  /**
-   * @dev called by the owner to unpause, returns to normal state
-   */
-  function unpause() onlyOwner whenPaused returns (bool) {
-    paused = false;
-    Unpause();
-    return true;
-  }
-}
-
-
 /// @title Clock auction for non-fungible tokens.
 /// @notice We omit a fallback function to prevent accidental sends to this contract.
-contract ClockAuction is Pausable, ClockAuctionBase {
+contract ClockAuctionMod is Pausable, ClockAuctionBaseMod {
 
     /// @dev The ERC-165 interface signature for ERC-721.
     ///  Ref: https://github.com/ethereum/EIPs/issues/165
@@ -1381,7 +1079,7 @@ contract ClockAuction is Pausable, ClockAuctionBase {
     ///  the Nonfungible Interface.
     /// @param _cut - percent cut the owner takes on each auction, must be
     ///  between 0-10,000.
-    function ClockAuction(address _nftAddress, uint256 _cut) public {
+    function ClockAuctionMod(address _nftAddress, uint256 _cut) public {
         require(_cut <= 10000);
         ownerCut = _cut;
 
@@ -1523,15 +1221,15 @@ contract ClockAuction is Pausable, ClockAuctionBase {
 
 /// @title Reverse auction modified for siring
 /// @notice We omit a fallback function to prevent accidental sends to this contract.
-contract SiringClockAuction is ClockAuction {
+contract SiringClockAuctionMod is ClockAuctionMod {
 
     // @dev Sanity check that allows us to ensure that we are pointing to the
     //  right auction in our setSiringAuctionAddress() call.
     bool public isSiringClockAuction = true;
 
     // Delegate constructor
-    function SiringClockAuction(address _nftAddr, uint256 _cut) public
-        ClockAuction(_nftAddr, _cut) {}
+    function SiringClockAuctionMod(address _nftAddr, uint256 _cut) public
+        ClockAuctionMod(_nftAddr, _cut) {}
 
     /// @dev Creates and begins a new auction. Since this function is wrapped,
     /// require sender to be KittyCore contract.
@@ -1592,7 +1290,7 @@ contract SiringClockAuction is ClockAuction {
 
 /// @title Clock auction modified for sale of kitties
 /// @notice We omit a fallback function to prevent accidental sends to this contract.
-contract SaleClockAuction is ClockAuction {
+contract SaleClockAuctionMod is ClockAuctionMod {
 
     // @dev Sanity check that allows us to ensure that we are pointing to the
     //  right auction in our setSaleAuctionAddress() call.
@@ -1603,8 +1301,8 @@ contract SaleClockAuction is ClockAuction {
     uint256[5] public lastGen0SalePrices;
 
     // Delegate constructor
-    function SaleClockAuction(address _nftAddr, uint256 _cut) public
-        ClockAuction(_nftAddr, _cut) {}
+    function SaleClockAuctionMod(address _nftAddr, uint256 _cut) public
+        ClockAuctionMod(_nftAddr, _cut) {}
 
     /// @dev Creates and begins a new auction.
     /// @param _tokenId - ID of token to auction, sender must be owner.
@@ -1672,7 +1370,7 @@ contract SaleClockAuction is ClockAuction {
 /// @title Handles creating auctions for sale and siring of kitties.
 ///  This wrapper of ReverseAuction exists only so that users can create
 ///  auctions with only one transaction.
-contract KittyAuction is KittyBreeding {
+contract KittyAuctionMod is KittyBreedingMod {
 
     // @notice The auction contract variables are defined in KittyBase to allow
     //  us to refer to them in KittyOwnership to prevent accidental transfers.
@@ -1682,7 +1380,7 @@ contract KittyAuction is KittyBreeding {
     /// @dev Sets the reference to the sale auction.
     /// @param _address - Address of sale contract.
     function setSaleAuctionAddress(address _address) external onlyCEO {
-        SaleClockAuction candidateContract = SaleClockAuction(_address);
+        SaleClockAuctionMod candidateContract = SaleClockAuctionMod(_address);
 
         // NOTE: verify that a contract is what we expect - https://github.com/Lunyr/crowdsale-contracts/blob/cfadd15986c30521d8ba7d5b6f57b4fefcc7ac38/contracts/LunyrToken.sol#L117
         require(candidateContract.isSaleClockAuction());
@@ -1694,7 +1392,7 @@ contract KittyAuction is KittyBreeding {
     /// @dev Sets the reference to the siring auction.
     /// @param _address - Address of siring contract.
     function setSiringAuctionAddress(address _address) external onlyCEO {
-        SiringClockAuction candidateContract = SiringClockAuction(_address);
+        SiringClockAuctionMod candidateContract = SiringClockAuctionMod(_address);
 
         // NOTE: verify that a contract is what we expect - https://github.com/Lunyr/crowdsale-contracts/blob/cfadd15986c30521d8ba7d5b6f57b4fefcc7ac38/contracts/LunyrToken.sol#L117
         require(candidateContract.isSiringClockAuction());
@@ -1800,7 +1498,7 @@ contract KittyAuction is KittyBreeding {
 
 
 /// @title all functions related to creating kittens
-contract KittyMinting is KittyAuction {
+contract KittyMintingMod is KittyAuctionMod {
 
     // Limits the number of cats the contract owner can ever create.
     uint256 public constant PROMO_CREATION_LIMIT = 5000;
@@ -1870,7 +1568,7 @@ contract KittyMinting is KittyAuction {
 /// @title CryptoKitties: Collectible, breedable, and oh-so-adorable cats on the Ethereum blockchain.
 /// @author Axiom Zen (https://www.axiomzen.co)
 /// @dev The main CryptoKitties contract, keeps track of kittens so they don't wander around and get lost.
-contract KittyCore is KittyMinting {
+contract KittyCoreMod is KittyMintingMod {
 
     // This is the main CryptoKitties contract. In order to keep our code seperated into logical sections,
     // we've broken it up in two ways. First, we have several seperately-instantiated sibling contracts
@@ -1914,7 +1612,7 @@ contract KittyCore is KittyMinting {
     address public newContractAddress;
 
     /// @notice Creates the main CryptoKitties smart contract instance.
-    function KittyCore() public {
+    function KittyCoreMod() public {
         // Starts paused.
         paused = true;
 
