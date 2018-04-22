@@ -13,6 +13,8 @@ contract KittyBaseMod is KittyAccessControl {
     ///  when a new gen0 cat is created.
     event Birth(address owner, uint256 kittyId, uint256 matronId, uint256 sireId, uint256 genes);
 
+    event NewKitty(uint64 id, uint256 genes, uint256 birthtime, uint16 cooldownendblock, uint64 matronId, uint64 sireId, uint64 siringwith, uint16 cooldownindex, uint16 generation);
+
     /// @dev Transfer event as defined in current draft of ERC721. Emitted every time a kitten
     ///  ownership is assigned, including births.
     event Transfer(address from, address to, uint256 tokenId);
@@ -208,10 +210,50 @@ contract KittyBaseMod is KittyAccessControl {
             _kitty.genes
         );
 
+
+
         // This will assign ownership, and also emit the Transfer event as
         // per ERC721 draft
         _transfer(0, _owner, newKittenId);
 
+        return newKittenId;
+    }
+
+    function _createKittyMod(uint256 promoCreatedCount,
+        uint256 _matronId,
+        uint256 _sireId,
+        uint256 _generation,
+        uint256 _genes,
+        address _owner
+    )
+        internal
+        returns (uint)
+    {
+        // These requires are not strictly necessary, our calling code should make
+        // sure that these conditions are never broken. However! _createKitty() is already
+        // an expensive call (for storage), and it doesn't hurt to be especially careful
+        // to ensure our data structures are always valid.
+        require(_matronId == uint256(uint32(_matronId)));
+        require(_sireId == uint256(uint32(_sireId)));
+        require(_generation == uint256(uint16(_generation)));
+
+        // New kitty starts with the same cooldown as parent gen/2
+        uint16 cooldownIndex = uint16(_generation / 2);
+        if (cooldownIndex > 13) {
+            cooldownIndex = 13;
+        }
+
+        uint256 newKittenId = promoCreatedCount + 1;
+
+        // It's probably never going to happen, 4 billion cats is A LOT, but
+        // let's just be 100% sure we never let this happen.
+        require(newKittenId == uint256(uint32(newKittenId)));
+
+        // This will assign ownership, and also emit the Transfer event as
+        // per ERC721 draft
+        _transfer(0, _owner, newKittenId);
+
+	      NewKitty(uint64(newKittenId), _genes, uint256(now), 0, uint64(_matronId), uint64(_sireId), 0, uint16(cooldownIndex), uint16(_generation));
         return newKittenId;
     }
 
@@ -1522,8 +1564,7 @@ contract KittyMintingMod is KittyAuctionMod {
         }
         require(promoCreatedCount < PROMO_CREATION_LIMIT);
 
-        promoCreatedCount++;
-        _createKitty(0, 0, 0, _genes, kittyOwner);
+        promoCreatedCount = _createKittyMod(promoCreatedCount, 0, 0, 0, _genes, kittyOwner);
     }
 
     /// @dev Creates a new gen0 kitty with the given genes and
