@@ -1,43 +1,70 @@
 'use strict';
 
+if (process.argv.length != 4) {
+  console.log('Usage: node runorig.js <mode> <maxGas>');
+  process.exit(1);
+}
+
+require('dotenv').load();
 const constants = require('./constants.js');
 
-const Web3 = require('web3');
+const HDWalletProvider = require("truffle-hdwallet-provider");
 const contractAbstraction = require('truffle-contract');
 
-const rpcnode = process.argv[2];
-const defaultAccount = process.argv[3];
-const numKitties = process.argv[4];
+const mode = process.argv[2];
+let maxGas = process.argv[3];
+let rpcnode;
+let addr_index;
+let provider;
+let defaultAccount;
 
-const provider = new Web3.providers.HttpProvider(rpcnode);
-const web3 = new Web3(provider);
+if (mode === 'local') {
+  rpcnode = process.env.LOCAL_RPC;
+  addr_index = 0;
+  provider = new HDWalletProvider(process.env.LOCAL_MNEMONIC, rpcnode, addr_index);
+  defaultAccount = provider.getAddress(addr_index);
+} else if (mode === 'ropsten') {
+  rpcnode = process.env.ROPSTEN_RPC;
+  addr_index = 0;
+  provider = new HDWalletProvider(process.env.ROPSTEN_MNEMONIC, rpcnode + '/' + process.env.INFURA_ACCESS_TOKEN, addr_index);
+  defaultAccount = provider.getAddress(addr_index);
+} else {
+  console.log('Invalid mode. Valid modes are `local` and `ropsten`');
+  process.exit(1);
+}
 
 const loadedContracts = {};
 
 function loadContracts() {
-  for (let contract of Object.values(constants.CONTRACTS)) {
-    let contractJson = require(constants.BUILD_DIR + contract + '.json');
-    let loadedContract = contractAbstraction(contractJson);
-    // Provision the contract with a web3 provider
-    loadedContract.setProvider(provider);
-    // due to a bug add below lines
-    if (typeof loadedContract.currentProvider.sendAsync !== "function") {
-      loadedContract.currentProvider.sendAsync = function() {
-        return loadedContract.currentProvider.send.apply(loadedContract.currentProvider, arguments);
-      };
-    }
-    loadedContract.defaults({
-      from: defaultAccount,
-      gas: 10 ** 6
-    });
-    loadedContracts[contract] = loadedContract;
+
+  let contractJson = require(constants.BUILD_DIR + constants.CONTRACTS.KITTY_CORE + '.json');
+  let loadedContract = contractAbstraction(contractJson);
+  // Provision the contract with a provider
+  loadedContract.setProvider(provider);
+  // due to a bug add below lines
+  if (typeof loadedContract.currentProvider.sendAsync !== "function") {
+    loadedContract.currentProvider.sendAsync = function() {
+      return loadedContract.currentProvider.send.apply(loadedContract.currentProvider, arguments);
+    };
   }
+  loadedContract.defaults({
+    from: defaultAccount,
+    gas: 10 ** 6
+  });
+  loadedContracts[constants.CONTRACTS.KITTY_CORE] = loadedContract;
+
 }
 
 function createPromoKitty(genes, owner) {
   loadedContracts[constants.CONTRACTS.KITTY_CORE].deployed().then(function(instance) {
     instance.createPromoKitty(genes, owner).then(function(result) {
-      console.log('Gas used: ' + result.receipt.gasUsed, 'Cumulative gas used: ' + result.receipt.cumulativeGasUsed);
+      let lastGasUsed = result.receipt.gasUsed;
+      maxGas -= lastGasUsed;
+      console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
+      //call again
+      if (maxGas > lastGasUsed) {
+        createPromoKitty(new Date().getTime(), defaultAccount);
+      }
     }).catch(function(e) {
       console.log(e);
     });
@@ -49,7 +76,6 @@ function createPromoKitty(genes, owner) {
 // Load contracts into the application
 loadContracts();
 
+
 //create Kitties
-for (let i = 0; i < numKitties; i++) {
-  createPromoKitty(new Date().getTime(), defaultAccount);
-}
+createPromoKitty(new Date().getTime(), defaultAccount);

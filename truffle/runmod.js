@@ -1,17 +1,39 @@
 'use strict';
 
+if (process.argv.length != 4) {
+  console.log('Usage: node runorig.js <mode> <maxGas>');
+  process.exit(1);
+}
+
+require('dotenv').load();
 const constants = require('./constants.js');
 
-const Web3 = require('web3');
+const HDWalletProvider = require("truffle-hdwallet-provider");
 const contractAbstraction = require('truffle-contract');
+
+const mode = process.argv[2];
+let maxGas = process.argv[3];
+let rpcnode;
+let addr_index;
+let provider;
+let defaultAccount;
+
+if (mode === 'local') {
+  rpcnode = process.env.LOCAL_RPC;
+  addr_index = 1;
+  provider = new HDWalletProvider(process.env.LOCAL_MNEMONIC, rpcnode, addr_index);
+  defaultAccount = provider.getAddress(addr_index);
+} else if (mode === 'ropsten') {
+  rpcnode = process.env.ROPSTEN_RPC;
+  addr_index = 4;
+  provider = new HDWalletProvider(process.env.ROPSTEN_MNEMONIC, rpcnode + '/' + process.env.INFURA_ACCESS_TOKEN, addr_index);
+  defaultAccount = provider.getAddress(addr_index);
+} else {
+  console.log('Invalid mode. Valid modes are `local` and `ropsten`');
+  process.exit(1);
+}
+
 const pg = require('pg');
-
-const rpcnode = process.argv[2];
-const defaultAccount = process.argv[3];
-const numKitties = process.argv[4];
-
-const provider = new Web3.providers.HttpProvider(rpcnode);
-const web3 = new Web3(provider);
 
 const loadedContracts = {};
 
@@ -19,30 +41,36 @@ const loadedContracts = {};
 const pool = new pg.Pool(constants.DB_CONFIG);
 
 function loadContracts() {
-  for (let contract of Object.values(constants.CONTRACTS_MOD)) {
-    let contractJson = require(constants.BUILD_DIR + contract + '.json');
-    let loadedContract = contractAbstraction(contractJson);
-    // Provision the contract with a web3 provider
-    loadedContract.setProvider(provider);
-    // due to a bug add below lines
-    if (typeof loadedContract.currentProvider.sendAsync !== "function") {
-      loadedContract.currentProvider.sendAsync = function() {
-        return loadedContract.currentProvider.send.apply(loadedContract.currentProvider, arguments);
-      };
-    }
-    loadedContract.defaults({
-      from: defaultAccount,
-      gas: 10 ** 6
-    });
-    loadedContracts[contract] = loadedContract;
+
+  let contractJson = require(constants.BUILD_DIR + constants.CONTRACTS_MOD.KITTY_CORE_MOD + '.json');
+  let loadedContract = contractAbstraction(contractJson);
+  // Provision the contract with a web3 provider
+  loadedContract.setProvider(provider);
+  // due to a bug add below lines
+  if (typeof loadedContract.currentProvider.sendAsync !== "function") {
+    loadedContract.currentProvider.sendAsync = function() {
+      return loadedContract.currentProvider.send.apply(loadedContract.currentProvider, arguments);
+    };
   }
+  loadedContract.defaults({
+    from: defaultAccount,
+    gas: 10 ** 6
+  });
+  loadedContracts[constants.CONTRACTS_MOD.KITTY_CORE_MOD] = loadedContract;
+
 }
 
 function createPromoKitty(genes, owner) {
   loadedContracts[constants.CONTRACTS_MOD.KITTY_CORE_MOD].deployed().then(function(instance) {
     instance.createPromoKitty(genes, owner).then(function(result) {
-      console.log('Gas used: ' + result.receipt.gasUsed, 'Cumulative gas used: ' + result.receipt.cumulativeGasUsed);
+      let lastGasUsed = result.receipt.gasUsed;
+      maxGas -= lastGasUsed;
+      console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
       writeToDb(result);
+      //call again
+      if (maxGas > lastGasUsed) {
+        createPromoKitty(new Date().getTime(), defaultAccount);
+      }
     }).catch(function(e) {
       console.log(e);
     });
@@ -51,10 +79,18 @@ function createPromoKitty(genes, owner) {
   });
 }
 
-function writeToDb(result) {
+function writeToDb(result, count) {
   let query = 'INSERT INTO kitty(id, genes, birthtime, cooldownendblock, matronId, sireId, siringwith, cooldownindex, generation) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)';
+  let log;
+  for (let i = 0; i < result.logs.length; i++) {
+    log = result.logs[i];
+    if (log.event === "NewKitty") {
+      // We found the event!
+      break;
+    }
+  }
 
-  let data = result.logs[1].args;
+  let data = log.args;
   let values = [];
   values.push(data['id'].toNumber());
   values.push(data['genes'].toNumber());
@@ -69,9 +105,7 @@ function writeToDb(result) {
   pool.query(query, values, function(err, res) {
     if (err) {
       console.log('error in insert', err)
-    } else {
-
-    }
+    } else {}
   });
 }
 
@@ -79,6 +113,4 @@ function writeToDb(result) {
 loadContracts();
 
 //create Kitties
-for (let i = 0; i < numKitties; i++) {
-  createPromoKitty(new Date().getTime(), defaultAccount);
-}
+createPromoKitty(new Date().getTime(), defaultAccount);
