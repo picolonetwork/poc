@@ -17,6 +17,7 @@ let rpcnode;
 let addr_index;
 let provider;
 let defaultAccount;
+let numKittiesCreated = 0;
 
 if (mode === 'local') {
   rpcnode = process.env.LOCAL_RPC;
@@ -58,6 +59,7 @@ function loadContracts() {
 function createPromoKitty(genes, owner) {
   loadedContracts[constants.CONTRACTS.KITTY_CORE].deployed().then(function(instance) {
     instance.createPromoKitty(genes, owner).then(function(result) {
+      console.log('# kitties created: ', ++numKittiesCreated);
       let lastGasUsed = result.receipt.gasUsed;
       maxGas -= lastGasUsed;
       console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
