@@ -74,10 +74,13 @@ function createPromoKitty(genes, owner) {
 
 function invokeContract(instance, genes, owner) {
   instance.createPromoKitty(genes, owner).then(function(result) {
-    console.log('# kitties created: ', ++numKittiesCreated);
     let lastGasUsed = result.receipt.gasUsed;
     maxGas -= lastGasUsed;
-    console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
+    let print = {};
+    print.numCreated = ++numKittiesCreated;
+    print.gasUsed = lastGasUsed;
+    print.gasRemaining = maxGas;
+    console.log(JSON.stringify(print));
     //call again
     if (maxGas > lastGasUsed) {
       invokeContract(instance, new Date().getTime(), owner);

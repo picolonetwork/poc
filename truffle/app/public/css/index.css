@@ -1,0 +1,223 @@
+@font-face {
+  font-family: avenirLight;
+  src: url('../fonts/AvenirLTStd-Light.otf');
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 25px;
+  color: #3b4045;
+  font: 14px/22px 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 300;
+  margin: 0px;
+}
+
+h1 {
+  font-size: 44px;
+  line-height: 56px;
+  color: #fff;
+}
+
+h2 {
+  font-size: 30px;
+  line-height: 35px;
+}
+
+h3 {
+  font-size: 23px;
+  line-height: 25px;
+}
+
+h4 {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+p {
+  font-size: 16px;
+  line-height: 25px;
+  margin: 0px;
+}
+
+.section {
+  padding: 100px 0;
+}
+
+.btn {
+  border-radius: 0;
+}
+
+#hero-area {
+  padding: 80px 0;
+}
+
+#hero-area:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.9;
+}
+
+#hero-area .block {
+  padding-top: 0px;
+}
+
+#hero-area .block h1 {
+  margin-bottom: 35px;
+  text-transform: uppercase;
+  font-size: 40px;
+  letter-spacing: 6px;
+  position: relative;
+}
+
+#hero-area .block p {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 30px;
+}
+
+.form-group {
+  margin-top: 20px;
+}
+
+.form-group .btn-submit {
+  border: 0 none;
+  border-radius: 5px;
+  color: black;
+  padding: 10px 20px;
+  font-size: 15px;
+  background: -webkit-gradient(linear, right top, right bottom, color-stop(0%, #f46542), color-stop(100%, #f4a641));
+}
+
+.font_6 {
+  font-family: avenirLight;
+  font-size: 21px;
+  letter-spacing: 0.1em;
+  color: black;
+  line-height: 1.6em;
+  text-align: center;
+}
+
+.video-block {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+}
+
+.video-block .bg-vid {
+  width: 200%;
+}
+
+.video-block .bg-vid {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  -moz-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  width: 70%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#hashrate {
+  border: 0 none;
+  border-radius: 5px;
+  padding: 10px;
+  color: black;
+  font-size: 30px;
+  background: -webkit-gradient(linear, right top, right bottom, color-stop(0%, #f4a641), color-stop(100%, #f46542));
+}
+
+#coinName {
+  text-transform: capitalize;
+}
+
+#loading {
+  font-size: 2em;
+}
+
+.stats {
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  margin-top: 5px;
+}
+
+.stats:last-child {
+  width: auto;
+}
+
+.stats>h3>i {
+  font-size: 0.80em;
+  width: 21px;
+}
+
+.stats>div {
+  padding: 5px 0;
+}
+
+.stats>div>.fa {
+  width: 25px;
+  color: #f46542;
+}
+
+.stats>div>span:first-of-type {
+  font-weight: bold;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #f5f5f5;
+}
+
+footer>div {
+  margin: 10px auto;
+  text-align: center;
+}
+
+hr {
+  display: block;
+  height: 1px;
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 1em 0;
+  padding: 0;
+}
+
+.verticalLine {
+  border-left: 1px solid #ccc;
+  height: 500px;
+  align: right;
+}
+
+#stats_updated {
+  opacity: 0;
+  float: right;
+  margin-left: 30px;
+  color: red;
+  line-height: 47px;
+  font-size: 2em;
+}
+
+.kitty {
+  height: 300px;
+  width: 300px;
+}

@@ -90,7 +90,9 @@ app.use(express.static('app'));
 app.use(bodyParser.json());
 
 app.get('/', function(req, res) {
-  res.sendFile("./app/index.html");
+  res.sendFile("./app/index.html", {
+    "root": __dirname
+  });
 })
 
 app.post('/register', function(req, res) {

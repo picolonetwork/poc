@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="no-js">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Picolo demo</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body id="body">
+
+  <section id='hero-area'>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-5 stats">
+          <h3>Original</h3>
+          <hr>
+          <div style="display:flex">
+            <div># Kitties created: &nbsp;<span id="origCreated">0</span></div>
+            <div>,&nbsp; Gas used: &nbsp;<span id="origGasUsed">0</span></div>
+            <div>,&nbsp; Gas remaining: &nbsp;<span id="origGasRem">0</span></div>
+          </div>
+          <div><img id="origKittyImg" src='./img/2.svg' class="kitty"></div>
+        </div>
+        <div class="col-md-6 stats">
+          <h3>Picolo</h3>
+          <hr>
+          <div style="display:flex">
+            <div># Kitties created: &nbsp;<span id="modCreated">0</span></div>
+            <div>,&nbsp; Gas used: &nbsp;<span id="modGasUsed">0</span></div>
+            <div>,&nbsp; Gas remaining: &nbsp;<span id="modGasRem">0</span></div>
+          </div>
+          <div><img id="modKittyImg" src='./img/1.svg' class="kitty"></div>
+        </div>
+      </div>
+      <div class="row" style="align:center">
+        <div class="col-md-3">
+          <div id="regForm" class="form-group" style="font-family:avenirLight;">
+            <div>
+              <p>Select network: &nbsp;</p>
+              <select id="mode" class="form-control">
+                <option value="local">local</option>
+                <option value="ropsten">ropsten</option>
+              </select>
+              <br>
+              <p>Enter gas units: &nbsp; <input type="text" name="gas" id="gas" class="form-control" placeholder="Gas in wei"> &nbsp; </p>
+              <button class="btn btn-default btn-submit" type="submit" id="startBtn" onclick="toggle();">Start</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="align:center">
+        <div>
+          &nbsp;
+        </div>
+      </div>
+      <div class="row" style="align:center">
+        <div style="float:center; color:grey; text-align: left">
+          &nbsp; &nbsp; Images are taken from cryptokitties website
+        </div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-timeago/1.4.0/jquery.timeago.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
+  <!-- <script src="js/index.min.js"></script> -->
+  <script>
+    var connection;
+    var modImgIdx = 1;
+    var origImgIdx = 2;
+
+    function toggle() {
+      let test = $('#startBtn').text();
+      let data = {};
+      data.mode = $('#mode').val();
+      data.gas = $('#gas').val();
+      if (test == 'Start') {
+        $('#startBtn').text('Stop');
+        $.ajax({
+          type: "POST",
+          url: "/start",
+          contentType: "application/json; charset=utf-8",
+          dataType: "application/json",
+          data: JSON.stringify(data),
+          success: function(resp) {
+            console.log(resp);
+          },
+          error: function(resp) {
+            console.log(resp);
+          }
+        });
+        connection.send('hello from client');
+      } else if (test == 'Stop') {
+        $('#startBtn').text('Start')
+      }
+    }
+
+    function handleMessage(resp) {
+      let variant = resp.variant;
+      let data = resp.data;
+      console.log(resp);
+      console.log(variant);
+      console.log(data);
+      let numCreated = data.numCreated;
+      let gasUsed = data.gasUsed;
+      let gasRemaining = data.gasRemaining;
+      if (variant == 'orig') {
+        origImgIdx += 2;
+        if (origImgIdx > 16) {
+          origImgIdx = 2;
+        }
+        $('#origCreated').text(numCreated);
+        $('#origGasUsed').text(gasUsed);
+        $('#origGasRem').text(gasRemaining);
+        $("#origKittyImg").attr("src", './img/' + origImgIdx + '.svg');
+      }
+      if (variant == 'mod') {
+        modImgIdx += 2;
+        if (modImgIdx > 17) {
+          modImgIdx = 1;
+        }
+        $('#modCreated').text(numCreated);
+        $('#modGasUsed').text(gasUsed);
+        $('#modGasRem').text(gasRemaining);
+        $("#modKittyImg").attr("src", './img/' + modImgIdx + '.svg');
+      }
+    }
+
+    $(document).ready(function() {
+      connection = new WebSocket('ws://localhost:9092');
+      connection.onopen = function() {
+
+      };
+      // Log errors
+      connection.onerror = function(error) {
+        console.error('WebSocket Error ' + error);
+      };
+      // Log messages from the server
+      connection.onmessage = function(e) {
+        console.log('message from server', e.data);
+        handleMessage(JSON.parse(e.data));
+      };
+    });
+  </script>
+</body>
+
+</html>
