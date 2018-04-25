@@ -14,7 +14,7 @@ contract Picolo is Ownable, StandardToken {
     uint256 public constant decimals = 18;
     string public version = "1.0";
 
-   	uint public entryStake = 10 ether;  // amount of eth required for staking
+   	uint public entryStake = 0.01 ether;  // amount of eth required for staking
    	mapping(address => uint) public registeredNodesStake;
    	mapping(address => string) public nodeStatus;
     uint256 public totalPayments;
@@ -25,19 +25,19 @@ contract Picolo is Ownable, StandardToken {
    	mapping(address => bool) public validators;
 
     function Picolo() public {
-      totalSupply = 1 * (10**9) * 10**decimals;
+      totalSupply = 1 * (10**9) * (10 ** decimals);
+      balances[msg.sender] = totalSupply;
     }
 
     // Status of transaction. Used for error handling.
-    event Status(string indexed statusCode);
 
    	event nodeStatusChangeEvent (
-   		string indexed newStatus,
-   		address indexed sender
+   		string newStatus,
+   		address sender
    	);
 
-    modifier costs(uint price) {
-        require(msg.value == price);
+    modifier checkStake() {
+        require(msg.value == entryStake);
         _;
     }
 
@@ -46,8 +46,14 @@ contract Picolo is Ownable, StandardToken {
         _;
     }
 
-   	function register() public payable costs(entryStake) {
+    modifier checkClaim() {
+        // to be implemented
+        _;
+    }
+
+   	function register() public payable checkStake {
       require(keccak256(nodeStatus[msg.sender]) == keccak256(""));
+      require(registeredNodesStake[msg.sender] == 0);
       nodeStatus[msg.sender] = 'inactive';
    		registeredNodesStake[msg.sender] = entryStake;
       emit nodeStatusChangeEvent('inactive', msg.sender);
@@ -59,35 +65,47 @@ contract Picolo is Ownable, StandardToken {
  	   	emit nodeStatusChangeEvent('active', msg.sender);
    	}
 
-   	function stop() public {
+   	function stop(uint256 mined) public {
  		  require(keccak256(nodeStatus[msg.sender]) == keccak256("active"));
+      // adding mined picolos
+      balances[msg.sender] = balances[msg.sender].add(mined);
+      totalPayments = totalPayments.add(mined);
  	   	nodeStatus[msg.sender] = 'inactive';
  	   	emit nodeStatusChangeEvent('inactive', msg.sender);
    	}
 
-   	function unregister() public {
+   	function unregister(uint256 mined) public {
       address payee = msg.sender;
    		require(keccak256(nodeStatus[payee]) != keccak256("malicious"));
    		require(keccak256(nodeStatus[payee]) != keccak256("pending"));
+
+      uint256 payment = registeredNodesStake[payee];
       require(payment != 0);
       require(address(this).balance >= payment);
 
-      uint256 payment = registeredNodesStake[payee];
       registeredNodesStake[payee] = 0;
       nodeStatus[payee] = '';
+      // adding mined picolos
+      balances[payee] = balances[payee].add(mined);
+      totalPayments = totalPayments.add(mined);
+      // transferring ether security deposit
       payee.transfer(payment);
  	   	emit nodeStatusChangeEvent('unregistered', msg.sender);
    	}
 
-    function claimMiningRewards(uint256 payment) public {
+    function claim(uint256 mined) public checkClaim {
       address payee = msg.sender;
-      require(payment != 0);
-      balances[payee].add(payment);
-      totalPayments = totalPayments.add(payment);
+      require(mined != 0);
+      balances[payee] = balances[payee].add(mined);
+      totalPayments = totalPayments.add(mined);
     }
 
-   	function changeEntryStake(uint _price) public onlyOwner {
-        entryStake = _price;
+   	function changeEntryStake(uint _stake) public onlyOwner {
+        entryStake = _stake;
+    }
+
+    function getContractBalance() public view returns(uint) {
+        return address(this).balance;
     }
 
     // Challenges

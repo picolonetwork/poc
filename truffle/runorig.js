@@ -57,19 +57,31 @@ function loadContracts() {
 }
 
 function createPromoKitty(genes, owner) {
-  loadedContracts[constants.CONTRACTS.KITTY_CORE].deployed().then(function(instance) {
-    instance.createPromoKitty(genes, owner).then(function(result) {
-      console.log('# kitties created: ', ++numKittiesCreated);
-      let lastGasUsed = result.receipt.gasUsed;
-      maxGas -= lastGasUsed;
-      console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
-      //call again
-      if (maxGas > lastGasUsed) {
-        createPromoKitty(new Date().getTime(), defaultAccount);
-      }
+  if (mode === 'local') {
+    loadedContracts[constants.CONTRACTS.KITTY_CORE].deployed().then(function(instance) {
+      invokeContract(instance, genes, owner);
     }).catch(function(e) {
       console.log(e);
     });
+  } else if (mode === 'ropsten') {
+    loadedContracts[constants.CONTRACTS.KITTY_CORE].at(constants.CONTRACT_ADDRESS.ROPSTEN.KITTY_CORE).then(function(instance) {
+      invokeContract(instance, genes, owner);
+    }).catch(function(e) {
+      console.log(e);
+    });
+  }
+}
+
+function invokeContract(instance, genes, owner) {
+  instance.createPromoKitty(genes, owner).then(function(result) {
+    console.log('# kitties created: ', ++numKittiesCreated);
+    let lastGasUsed = result.receipt.gasUsed;
+    maxGas -= lastGasUsed;
+    console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
+    //call again
+    if (maxGas > lastGasUsed) {
+      invokeContract(instance, new Date().getTime(), owner);
+    }
   }).catch(function(e) {
     console.log(e);
   });

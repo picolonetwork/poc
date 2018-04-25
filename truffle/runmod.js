@@ -1,13 +1,13 @@
 'use strict';
 
 if (process.argv.length != 4) {
-  console.log('Usage: node runorig.js <mode> <maxGas>');
+  console.log('Usage: node runmod.js <mode> <maxGas>');
   process.exit(1);
 }
 
 require('dotenv').load();
 const constants = require('./constants.js');
-
+const pg = require('pg');
 const HDWalletProvider = require("truffle-hdwallet-provider");
 const contractAbstraction = require('truffle-contract');
 
@@ -18,28 +18,26 @@ let addr_index;
 let provider;
 let defaultAccount;
 let numKittiesCreated = 0;
+let pool;
 
 if (mode === 'local') {
   rpcnode = process.env.LOCAL_RPC;
   addr_index = 1;
   provider = new HDWalletProvider(process.env.LOCAL_MNEMONIC, rpcnode, addr_index);
   defaultAccount = provider.getAddress(addr_index);
+  pool = new pg.Pool(constants.LOCAL_DB_CONFIG);
 } else if (mode === 'ropsten') {
   rpcnode = process.env.ROPSTEN_RPC;
   addr_index = 4;
   provider = new HDWalletProvider(process.env.ROPSTEN_MNEMONIC, rpcnode + '/' + process.env.INFURA_ACCESS_TOKEN, addr_index);
   defaultAccount = provider.getAddress(addr_index);
+  pool = new pg.Pool(constants.ROPSTEN_DB_CONFIG);
 } else {
   console.log('Invalid mode. Valid modes are `local` and `ropsten`');
   process.exit(1);
 }
 
-const pg = require('pg');
-
 const loadedContracts = {};
-
-//init pool
-const pool = new pg.Pool(constants.DB_CONFIG);
 
 function loadContracts() {
 
@@ -62,20 +60,32 @@ function loadContracts() {
 }
 
 function createPromoKitty(genes, owner) {
-  loadedContracts[constants.CONTRACTS_MOD.KITTY_CORE_MOD].deployed().then(function(instance) {
-    instance.createPromoKitty(genes, owner).then(function(result) {
-      console.log('# kitties created: ', ++numKittiesCreated);
-      let lastGasUsed = result.receipt.gasUsed;
-      maxGas -= lastGasUsed;
-      console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
-      writeToDb(result);
-      //call again
-      if (maxGas > lastGasUsed) {
-        createPromoKitty(new Date().getTime(), defaultAccount);
-      }
+  if (mode === 'local') {
+    loadedContracts[constants.CONTRACTS_MOD.KITTY_CORE_MOD].deployed().then(function(instance) {
+      invokeContract(instance, genes, owner);
     }).catch(function(e) {
       console.log(e);
     });
+  } else if (mode === 'ropsten') {
+    loadedContracts[constants.CONTRACTS_MOD.KITTY_CORE_MOD].at(constants.CONTRACT_ADDRESS.ROPSTEN.KITTY_CORE_MOD).then(function(instance) {
+      invokeContract(instance, genes, owner);
+    }).catch(function(e) {
+      console.log(e);
+    });
+  }
+}
+
+function invokeContract(instance, genes, owner) {
+  instance.createPromoKitty(genes, owner).then(function(result) {
+    console.log('# kitties created: ', ++numKittiesCreated);
+    let lastGasUsed = result.receipt.gasUsed;
+    maxGas -= lastGasUsed;
+    console.log('Gas used: ' + lastGasUsed, 'Gas remaining: ' + maxGas);
+    writeToDb(result);
+    //call again
+    if (maxGas > lastGasUsed) {
+      invokeContract(instance, new Date().getTime(), owner);
+    }
   }).catch(function(e) {
     console.log(e);
   });
