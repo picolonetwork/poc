@@ -25,7 +25,7 @@ if (mode === 'local') {
   addr_index = 1;
   provider = new HDWalletProvider(process.env.LOCAL_MNEMONIC, rpcnode, addr_index);
   defaultAccount = provider.getAddress(addr_index);
-  pool = new pg.Pool(constants.LOCAL_DB_CONFIG);
+  pool = new pg.Pool(constants.ROPSTEN_DB_CONFIG);
 } else if (mode === 'ropsten') {
   rpcnode = process.env.ROPSTEN_RPC;
   addr_index = 4;

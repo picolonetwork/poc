@@ -23,9 +23,9 @@ let respBackMod;
 let respBackOrig;
 let clientWsConn;
 
-var Server = require('ws').Server;
-var port = 9092;
-var ws = new Server({
+const Server = require('ws').Server;
+const port = 9092;
+const ws = new Server({
   port: port
 });
 
@@ -39,6 +39,10 @@ ws.on('connection', function(w) {
   w.on('close', function() {
     console.log('closing connection');
   });
+});
+
+ws.on('open', function() {
+  console.log('opened connection');
 });
 
 app.use(express.static('app/public'));
@@ -82,14 +86,22 @@ function followStd(cmd, variant, res) {
     //res.write(JSON.stringify(resp));
     if (variant == 'mod') {
       respBackMod = JSON.stringify(resp);
-      clientWsConn.send(respBackMod);
+      sendRespToClient(respBackMod);
     }
     if (variant == 'orig') {
       respBackOrig = JSON.stringify(resp);
-      clientWsConn.send(respBackOrig);
+      sendRespToClient(respBackOrig);
     }
-
   });
+
+  function sendRespToClient(resp) {
+    if (clientWsConn.readyState == 1) {
+      clientWsConn.send(resp);
+    } else {
+      //console.log(clientWsConn);
+      console.log('ws connection null or not open');
+    }
+  }
 
   cmd.stderr.on('data', (data) => {
     console.log(variant + ' stderr ' + data);

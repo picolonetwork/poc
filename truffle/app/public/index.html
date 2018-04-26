@@ -76,9 +76,20 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
   <!-- <script src="js/index.min.js"></script> -->
   <script>
-    var connection;
-    var modImgIdx = 1;
-    var origImgIdx = 2;
+    let wsConnection;
+    let modImgIdx = 1;
+    let origImgIdx = 2;
+    let wsConnectionStatus;
+
+    // function setIntervalX(callback, delay, repetitions) {
+    //   let x = 0;
+    //   const intervalID = window.setInterval(function() {
+    //     wsConnectionStatus = callback();
+    //     if (++x === repetitions || wsConnectionStatus) {
+    //       window.clearInterval(intervalID);
+    //     }
+    //   }, delay);
+    // }
 
     function toggle() {
       let test = $('#startBtn').text();
@@ -86,7 +97,13 @@
       data.mode = $('#mode').val();
       data.gas = $('#gas').val();
       if (test == 'Start') {
-        $('#startBtn').text('Stop');
+        wsConnectionStatus = initWSConn();
+        // if (!wsConnectionStatus) {
+        //   //retry in 1 second 5 times
+        //   setIntervalX(function() {
+        //     return initWSConn();
+        //   }, 1000, 5);
+        // }
         $.ajax({
           type: "POST",
           url: "/start",
@@ -100,9 +117,11 @@
             console.log(resp);
           }
         });
-        connection.send('hello from client');
+        $('#startBtn').text('Stop');
+
       } else if (test == 'Stop') {
-        $('#startBtn').text('Start')
+        wsConnection.close();
+        $('#startBtn').text('Start');
       }
     }
 
@@ -137,21 +156,42 @@
       }
     }
 
-    $(document).ready(function() {
-      connection = new WebSocket('ws://localhost:9092');
-      connection.onopen = function() {
+    function initWSConn() {
+      if (!wsConnection || wsConnection.readyState === wsConnection.CLOSED) {
+        wsConnection = new WebSocket('ws://localhost:9092');
+        wsConnection.onopen = function() {
+          console.log('ws connection opened');
+          wsConnection.send('hello from client');
+          return true;
+        };
+        // Log errors
+        wsConnection.onerror = function(error) {
+          console.error('WebSocket Error ' + error);
+        };
+        // Log messages from the server
+        wsConnection.onmessage = function(e) {
+          console.log('message from server', e.data);
+          handleMessage(JSON.parse(e.data));
+        };
+      } else if (wsConnection.readyState === wsConnection.OPEN) {
+        //do nothing already open
+        console.log('ws connection already open');
+        return true;
+      } else if (wsConnection.readyState === wsConnection.CONNECTING || wsConnection.readyState === wsConnection.CLOSING) {
+        console.log('ws connection in closing or conneting state');
+        return false;
+      }
+      return false;
+    }
 
-      };
-      // Log errors
-      connection.onerror = function(error) {
-        console.error('WebSocket Error ' + error);
-      };
-      // Log messages from the server
-      connection.onmessage = function(e) {
-        console.log('message from server', e.data);
-        handleMessage(JSON.parse(e.data));
-      };
+    $(document).ready(function() {
+
     });
+
+    window.onbeforeunload = function() {
+      wsConnection.onclose = function() {}; // disable onclose handler first
+      wsConnection.close()
+    };
   </script>
 </body>
 
