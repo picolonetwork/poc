@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+
 <html class="no-js">
 
 <head>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Picolo demo</title>
+  <title>Picolo</title>
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -16,183 +16,10 @@
 
 <body id="body">
 
-  <section id='hero-area'>
-    <div class="container">
-      <div class="row">
-        <div class="col-md-5 stats">
-          <h3>Original</h3>
-          <hr>
-          <div style="display:flex">
-            <div># Kitties created: &nbsp;<span id="origCreated">0</span></div>
-            <div>,&nbsp; Gas used: &nbsp;<span id="origGasUsed">0</span></div>
-            <div>,&nbsp; Gas remaining: &nbsp;<span id="origGasRem">0</span></div>
-          </div>
-          <div><img id="origKittyImg" src='./img/2.svg' class="kitty"></div>
-        </div>
-        <div class="col-md-6 stats">
-          <h3>Picolo</h3>
-          <hr>
-          <div style="display:flex">
-            <div># Kitties created: &nbsp;<span id="modCreated">0</span></div>
-            <div>,&nbsp; Gas used: &nbsp;<span id="modGasUsed">0</span></div>
-            <div>,&nbsp; Gas remaining: &nbsp;<span id="modGasRem">0</span></div>
-          </div>
-          <div><img id="modKittyImg" src='./img/1.svg' class="kitty"></div>
-        </div>
-      </div>
-      <div class="row" style="align:center">
-        <div class="col-md-3">
-          <div id="regForm" class="form-group" style="font-family:avenirLight;">
-            <div>
-              <p>Select network: &nbsp;</p>
-              <select id="mode" class="form-control">
-                <option value="local">local</option>
-                <option value="ropsten">ropsten</option>
-              </select>
-              <br>
-              <p>Enter gas units: &nbsp; <input type="text" name="gas" id="gas" class="form-control" placeholder="Gas in wei"> &nbsp; </p>
-              <button class="btn btn-default btn-submit" type="submit" id="startBtn" onclick="toggle();">Start</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row" style="align:center">
-        <div>
-          &nbsp;
-        </div>
-      </div>
-      <div class="row" style="align:center">
-        <div style="float:center; color:grey; text-align: left">
-          &nbsp; &nbsp; Images are taken from cryptokitties website
-        </div>
-      </div>
-    </div>
-    </div>
-  </section>
+  <div class="center">
+    <h2>Coming soon</h2>
+  </div>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-timeago/1.4.0/jquery.timeago.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
-  <!-- <script src="js/index.min.js"></script> -->
-  <script>
-    let wsConnection;
-    let modImgIdx = 1;
-    let origImgIdx = 2;
-    let wsConnectionStatus;
-
-    // function setIntervalX(callback, delay, repetitions) {
-    //   let x = 0;
-    //   const intervalID = window.setInterval(function() {
-    //     wsConnectionStatus = callback();
-    //     if (++x === repetitions || wsConnectionStatus) {
-    //       window.clearInterval(intervalID);
-    //     }
-    //   }, delay);
-    // }
-
-    function toggle() {
-      let test = $('#startBtn').text();
-      let data = {};
-      data.mode = $('#mode').val();
-      data.gas = $('#gas').val();
-      if (test == 'Start') {
-        wsConnectionStatus = initWSConn();
-        // if (!wsConnectionStatus) {
-        //   //retry in 1 second 5 times
-        //   setIntervalX(function() {
-        //     return initWSConn();
-        //   }, 1000, 5);
-        // }
-        $.ajax({
-          type: "POST",
-          url: "/start",
-          contentType: "application/json; charset=utf-8",
-          dataType: "application/json",
-          data: JSON.stringify(data),
-          success: function(resp) {
-            console.log(resp);
-          },
-          error: function(resp) {
-            console.log(resp);
-          }
-        });
-        $('#startBtn').text('Stop');
-
-      } else if (test == 'Stop') {
-        wsConnection.close();
-        $('#startBtn').text('Start');
-      }
-    }
-
-    function handleMessage(resp) {
-      let variant = resp.variant;
-      let data = resp.data;
-      console.log(resp);
-      console.log(variant);
-      console.log(data);
-      let numCreated = data.numCreated;
-      let gasUsed = data.gasUsed;
-      let gasRemaining = data.gasRemaining;
-      if (variant == 'orig') {
-        origImgIdx += 2;
-        if (origImgIdx > 16) {
-          origImgIdx = 2;
-        }
-        $('#origCreated').text(numCreated);
-        $('#origGasUsed').text(gasUsed);
-        $('#origGasRem').text(gasRemaining);
-        $("#origKittyImg").attr("src", './img/' + origImgIdx + '.svg');
-      }
-      if (variant == 'mod') {
-        modImgIdx += 2;
-        if (modImgIdx > 17) {
-          modImgIdx = 1;
-        }
-        $('#modCreated').text(numCreated);
-        $('#modGasUsed').text(gasUsed);
-        $('#modGasRem').text(gasRemaining);
-        $("#modKittyImg").attr("src", './img/' + modImgIdx + '.svg');
-      }
-    }
-
-    function initWSConn() {
-      if (!wsConnection || wsConnection.readyState === wsConnection.CLOSED) {
-        wsConnection = new WebSocket('ws://localhost:9092');
-        wsConnection.onopen = function() {
-          console.log('ws connection opened');
-          wsConnection.send('hello from client');
-          return true;
-        };
-        // Log errors
-        wsConnection.onerror = function(error) {
-          console.error('WebSocket Error ' + error);
-        };
-        // Log messages from the server
-        wsConnection.onmessage = function(e) {
-          console.log('message from server', e.data);
-          handleMessage(JSON.parse(e.data));
-        };
-      } else if (wsConnection.readyState === wsConnection.OPEN) {
-        //do nothing already open
-        console.log('ws connection already open');
-        return true;
-      } else if (wsConnection.readyState === wsConnection.CONNECTING || wsConnection.readyState === wsConnection.CLOSING) {
-        console.log('ws connection in closing or conneting state');
-        return false;
-      }
-      return false;
-    }
-
-    $(document).ready(function() {
-
-    });
-
-    window.onbeforeunload = function() {
-      wsConnection.onclose = function() {}; // disable onclose handler first
-      wsConnection.close()
-    };
-  </script>
 </body>
 
 </html>

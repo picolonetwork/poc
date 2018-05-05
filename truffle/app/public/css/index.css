@@ -221,3 +221,11 @@ hr {
   height: 300px;
   width: 300px;
 }
+
+.center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -50px; /* margin is -0.5 * dimension */
+    margin-top: -25px; 
+}​
